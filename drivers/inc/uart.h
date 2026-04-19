@@ -9,6 +9,11 @@
 /** cmsis chip header file */
 #include "stm32c031xx.h"
 
+// name mingling fix for c functions:
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ==========================================================================
 // typedefs and macros:
 
@@ -57,5 +62,9 @@ int uart_init(uart_t *uart);
 
 int uart_write_byte(uart_t *uart, uint8_t data);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -22,6 +22,7 @@ CPPFLAGS = -mcpu=cortex-m0plus -mthumb -O2 -Wall
 CPPFLAGS += -I$(DRIVER)/inc
 CPPFLAGS += -I$(ROOT)/CMSIS
 CPPFLAGS += -I$(SUBSYS)/blink
+CPPFLAGS += -I$(SUBSYS)/uart_shell
 
 
 # reguired pre-defined symbols:
@@ -32,7 +33,7 @@ LDFLAGS = -T $(BOARD)/STM32C031c6TX_FLASH.ld
 
 # Object files (placed in build folder)
 OBJS = $(BUILD)/main.o $(BUILD)/system_stm32c0xx.o $(BUILD)/syscalls.o $(BUILD)/startup_stm32c031c6tx.o $(BUILD)/gpio.o\
-		$(BUILD)/wait.o $(BUILD)/blink.o $(BUILD)/uart.o
+		$(BUILD)/wait.o $(BUILD)/blink.o $(BUILD)/uart.o $(BUILD)/uart_shell.o
 
 # start building into the targe:
 TARGET = $(PROJ)/build/main.elf
@@ -61,15 +62,17 @@ $(BUILD)/wait.o: $(DRIVER)/src/wait.c
 $(BUILD)/uart.o: $(DRIVER)/src/uart.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Compile assembly files
+$(BUILD)/startup_stm32c031c6tx.o: $(BOARD)/startup_stm32c031c6tx.s
+	$(CC) $(CFLAGS) -c $< -o $@
+
 # complie c++ files
 
 $(BUILD)/blink.o: $(SUBSYS)/blink/blink.cpp
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
-$(BUILD)/main.o: $(PROJ)/main.c
-	$(CC) $(CFLAGS)  -c $< -o $@
+$(BUILD)/uart_shell.o: $(SUBSYS)/uart_shell/uart_shell.cpp
+	$(CXX) $(CPPFLAGS) -c $< -o $@
 
-
-# Compile assembly files
-$(BUILD)/startup_stm32c031c6tx.o: $(BOARD)/startup_stm32c031c6tx.s
-	$(CC) $(CFLAGS) -c $< -o $@
+$(BUILD)/main.o: $(PROJ)/main.cpp
+	$(CXX) $(CPPFLAGS)  -c $< -o $@
