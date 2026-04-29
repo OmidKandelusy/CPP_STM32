@@ -57,7 +57,7 @@
 #define GTIMER_DRIVER_PSC  ((GTIMER_PCLK_HZ / 1000000UL) - 1)
 #define GTIMER_DRIVER_ARR  999
 
-#define GTIMER_MAX_MS  65UL
+#define GTIMER_MAX_MS  0xFFFFFFFFUL
 
 static volatile uint8_t timer_busy = 0;
 static gtimer_cb_t registered_cb = NULL;
