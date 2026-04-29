@@ -11,6 +11,7 @@ PROJ   := $(ROOT)/projects/$(PROJ_NAME)
 BOARD  := $(ROOT)/board
 BUILD  := $(PROJ)/build
 DRIVER := $(ROOT)/drivers
+SUBSYS := $(ROOT)/subsystem
 
 # C compiler flags
 CFLAGS = -mcpu=cortex-m0plus -mthumb -O2 -Wall
@@ -25,6 +26,7 @@ CPPFLAGS = -mcpu=cortex-m0plus -mthumb -O2 -Wall
 CPPFLAGS += -I$(DRIVER)/inc
 CPPFLAGS += -I$(ROOT)/CMSIS
 CPPFLAGS += -I$(ROOT)/CMSIS
+CPPFLAGS += -I$(SUBSYS)/blink
 
 # linker flags
 LDFLAGS = -T $(BOARD)/STM32C031c6TX_FLASH.ld
@@ -32,7 +34,7 @@ LDFLAGS = -T $(BOARD)/STM32C031c6TX_FLASH.ld
 
 # Object files (placed in build folder)
 OBJS = $(BUILD)/main.o $(BUILD)/system_stm32c0xx.o $(BUILD)/syscalls.o $(BUILD)/startup_stm32c031c6tx.o $(BUILD)/gtimer.o\
-		$(BUILD)/main.o
+		$(BUILD)/main.o $(BUILD)/blink.o $(BUILD)/wait.o $(BUILD)/gpio.o
 
 
 # start building into the target:
@@ -58,10 +60,19 @@ $(BUILD)/syscalls.o: $(BOARD)/syscalls.c
 $(BUILD)/gtimer.o: $(DRIVER)/src/gtimer.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(BUILD)/gpio.o: $(DRIVER)/src/gpio.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/wait.o: $(DRIVER)/src/wait.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
 
 # complie c++ files
 $(BUILD)/main.o: $(PROJ)/main.cpp
 	$(CXX) $(CPPFLAGS)  -c $< -o $@
+
+$(BUILD)/blink.o: $(SUBSYS)/blink/blink.cpp
+	$(CXX) $(CPPFLAGS) -c $< -o $@
 
 
 # Compile assembly files
