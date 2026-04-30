@@ -36,12 +36,11 @@ int main(void){
         Blink.blink();
     }
 
-    while(1){
-        sys_wait_ms(400);
+    while(!timeout_flag);
 
-        if (timeout_flag){
-            Blink.pattern(PATTERN_1);
-        }
+    while(1){
+        Blink.blink();
+        sys_wait_ms(500);
     }
 
     return 0;

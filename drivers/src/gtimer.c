@@ -54,10 +54,10 @@
 // driver definitions, variables and macros
 
 #define GTIMER_PCLK_HZ    12000000UL
-#define GTIMER_DRIVER_PSC  ((GTIMER_PCLK_HZ / 1000000UL) - 1)
+#define GTIMER_DRIVER_PSC  ((GTIMER_PCLK_HZ / 1000UL) - 1)
 #define GTIMER_DRIVER_ARR  999
 
-#define GTIMER_MAX_MS  0xFFFFFFFFUL
+#define GTIMER_MAX_MS  65535UL  // 65.5 seconds max
 
 static volatile uint8_t timer_busy = 0;
 static gtimer_cb_t registered_cb = NULL;
@@ -71,7 +71,9 @@ void TIM3_IRQHandler(void)
         TIM3->SR &= ~TIM_SR_UIF;  // clear flag
 
         // dispatch the isr to higher level cb
-
+        if (registered_cb){
+            registered_cb();
+        }
         timer_busy = 0;
     }
 }
@@ -121,7 +123,7 @@ int gtimer_timeout_ms(uint32_t ms) {
     timer_busy = 1;
 
     // ARR = number of ticks - 1 (1 tick = 1us at 1MHz, so 1ms = 1000 ticks)
-    TIM3->ARR = (ms * 1000) - 1;
+    TIM3->ARR = ms - 1;
     // force register reload before starting
     TIM3->EGR |= TIM_EGR_UG;
     // clear the UIF that EGR_UG just triggered
