@@ -1,9 +1,5 @@
-# General-Purpose Timer Driver (TIM3)
-`gtimer.c / gtimer.h` — Custom bare-metal one-shot millisecond timer using raw CMSIS headers
-
-## 1. Overview
-
-This driver wraps TIM3 as a one-shot millisecond delay/timeout timer with a user-supplied callback. It is designed for a single concurrent timer (no multi-channel scheduling). The tick clock is derived from a 12 MHz PCLK and prescaled to 1 kHz, giving a 1 ms per tick resolution and a maximum timeout of 65 535 ms (~65.5 seconds).
+# General-Purpose Timer
+This bare-metal custom driver is implemented by `gtimer.c / gtimer.h` files enabling one-shot millisecond timer using raw CMSIS headers for the TIM3 hardware peripheral on the STM32c031c6 platform. The tick clock is derived from a 12 MHz PCLK and prescaled to 1 kHz, giving a 1 ms per tick resolution and a maximum timeout of 65 535 ms (~65.5 seconds).
 
 Key design constants:
 
@@ -14,7 +10,7 @@ Key design constants:
 | `GTIMER_DRIVER_ARR` | `999` | Auto-reload used during `gtimer_init` only (overwritten per call in `gtimer_timeout_ms`) |
 | `GTIMER_MAX_MS` | `65535` | Maximum ARR value (16-bit register ceiling) |
 
-## 2. Clock Enablement
+## Clock enablement
 
 TIM3 sits on APB1. Its register block is inaccessible — reads return 0, writes are discarded — until the RCC gates the bus clock on.
 
@@ -23,7 +19,7 @@ TIM3 sits on APB1. Its register block is inaccessible — reads return 0, writes
 | `RCC->APBENR1` | `TIM3EN` (bit 1) | `\|= 1` | Enables the APB1 clock to TIM3. Must be the first operation; any PSC/ARR write before this is silently lost, leading to a timer that runs at an unexpected (reset-default) rate or not at all. |
 
 
-## 3. Timer Configuration Registers
+## Timer configuration registers
 
 All configuration is done while the timer is stopped (`CEN=0`). The update-event mechanism (`EGR_UG`) is used to push the shadow registers into the active hardware registers synchronously rather than waiting for the next overflow.
 
@@ -36,7 +32,7 @@ All configuration is done while the timer is stopped (`CEN=0`). The update-event
 | `TIM3->SR` | `UIF` (bit 0) | `&= ~1` | The `UG` write above triggers a hardware update event which sets `UIF` as a side-effect. This must be cleared immediately after `EGR_UG` every time, otherwise the NVIC will see a pending interrupt before the timer has even started counting and fire the callback spuriously. |
 
 
-## 4. Interrupt Configuration
+## Interrupt configuration
 
 Two layers must be enabled for the ISR to execute: the timer's own interrupt-enable bit, and the NVIC routing entry.
 
@@ -46,7 +42,7 @@ Two layers must be enabled for the ISR to execute: the timer's own interrupt-ena
 | NVIC ISER | `TIM3_IRQn` | `NVIC_EnableIRQ()` | Routes the TIM3 interrupt line to the CPU exception table. If omitted, `UIF` asserts correctly inside TIM3 but the core never vectors to `TIM3_IRQHandler` — the callback is never called and `timer_busy` is never cleared. |
 
 
-## 5. Interrupt Service Routine — `TIM3_IRQHandler`
+## Interrupt service routine
 
 The ISR must confirm the source of the interrupt before acting, because other update causes (e.g. a trigger event) also share the same vector on some configurations.
 
@@ -56,7 +52,7 @@ The ISR must confirm the source of the interrupt before acting, because other up
 | `TIM3->SR` | `UIF` (bit 0) | `&= ~1` | Clears the interrupt flag. Must happen *before* the callback is dispatched. If cleared after, and the callback re-arms the timer, the new `UIF` set by `EGR_UG` inside `gtimer_timeout_ms` would be wiped out, silently preventing the next interrupt from firing. |
 
 
-## 6. `gtimer_stop` — Abort Sequence
+## Aborting sequence
 
 Stopping the timer safely requires three operations in a specific order. Changing the order creates race conditions between the counter hardware and the NVIC pipeline.
 
@@ -67,7 +63,7 @@ Stopping the timer safely requires three operations in a specific order. Changin
 | NVIC ICPR | `TIM3_IRQn` | `NVIC_ClearPendingIRQ()` | Removes any interrupt that already propagated into the NVIC pipeline before `CEN` was cleared. The NVIC latches IRQ assertions; clearing `UIF` in the peripheral does not retroactively un-pend an interrupt already accepted by the NVIC. If skipped, the ISR fires immediately after `gtimer_stop` returns, calling the callback for a timeout that was intentionally cancelled. |
 
 
-## 7. `gtimer_timeout_ms` — Per-Shot Register Sequence
+## One-shot timeout sequence
 
 Each call reloads the timer with a fresh period and starts the one-shot count. The sequence mirrors the init order for the same reasons.
 
@@ -79,7 +75,7 @@ Each call reloads the timer with a fresh period and starts the one-shot count. T
 | `TIM3->CR1` | `CEN` (bit 0) | `\|= 1` | Starts the counter. Must be the last step, after ARR and the shadow registers are fully loaded and `UIF` is clean. |
 
 
-## 8. `timer_busy` Flag
+## Timer busy Flag
 
 `timer_busy` is a software guard (not a hardware register) that prevents a second caller from overwriting an in-progress timeout. It is set to `1` before `CEN` is enabled and cleared to `0` inside the ISR after the callback returns. `gtimer_stop` also clears it.
 
@@ -90,7 +86,7 @@ if (timer_busy != 0) return GTIMER_TIMER_BUSY;
 Because `timer_busy` is written from both thread context (`gtimer_timeout_ms`) and interrupt context (ISR), it is declared `volatile` to prevent the compiler from caching its value in a register across the check.
 
 
-## 9. Required Initialization Order
+## Register access workflow
 
 | Step | Action |
 |---|---|
@@ -103,15 +99,6 @@ Because `timer_busy` is written from both thread context (`gtimer_timeout_ms`) a
 | 7 | Set `TIM3->DIER.UIE` (enable update interrupt in peripheral) |
 | 8 | `NVIC_EnableIRQ(TIM3_IRQn)` (enable IRQ in NVIC) |
 | 9 | Store user callback |
-
-
-## 10. Return Codes
-
-| Function | Code | Meaning |
-|---|---|---|
-| `gtimer_timeout_ms` | `0` | Success — timer started |
-| `gtimer_timeout_ms` | `GTIMER_INVALID_TIMEOUT_INPUT` | `ms == 0` or `ms > 65535` |
-| `gtimer_timeout_ms` | `GTIMER_TIMER_BUSY` | A previous timeout is still running |
 
 
 *Register names and bit definitions sourced from STM32C031 Reference Manual (RM0490) and CMSIS device headers.*
