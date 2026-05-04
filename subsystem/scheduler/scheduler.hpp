@@ -35,6 +35,14 @@ enum class Slot_status : uint8_t {
 
 typedef void (*slot_handler_cb_t)(void);
 
+/** 
+ * TODO
+ * 1) update the slot type to add slot width in ms
+ * 2) add gtimer to schedule the width of the allocated slot 
+ * 3) create a util to safely clean all the hardware peripherals
+ * 4) inside of gtimer first callback we schedule a secondary to safely disable all peripherals
+ */
+
 
 typedef struct{
     Slot_status status;

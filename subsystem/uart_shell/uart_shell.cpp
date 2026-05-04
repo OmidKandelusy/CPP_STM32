@@ -18,7 +18,7 @@ void rx_callback(uint8_t data){
 }
 
 
-void print_shell_promt(void){
+void print_shell_prompt(void){
 
     uart_write_byte(&uart_obj, '\n');
     uart_write_byte(&uart_obj, '\r');
@@ -131,9 +131,9 @@ int uart_shell_start(void){
     uint8_t msg_p[128] = {0};
     uint16_t msg_len = 0;
 
-    print_shell_promt();
+    print_shell_prompt();
 
-    // surveilance loop:
+    // surveillance loop:
     while(1){
 
         // waiting
@@ -143,7 +143,7 @@ int uart_shell_start(void){
         if (ret == 0){
             ret = uart_shell_process(msg_p, msg_len);
             if (ret == 0){
-                print_shell_promt();
+                print_shell_prompt();
             } else {
                 print_shell_error(ret);
             }
