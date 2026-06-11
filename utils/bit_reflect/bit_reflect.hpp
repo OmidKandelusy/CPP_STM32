@@ -1,7 +1,13 @@
 /**
  * @brief this utility enables to reverse an integer's bit order
  * 
- * @details It is very useful when changing LSB to MSB is needed.
+ * @details It is very useful when changing bits from LSB to the MSB is needed.
+ *          This utility is baked into a class that would be acting
+ *          as a namespace wrapping the shared logic to avoid repetition. 
+ *          The static declaration of the methods removes the need for object
+ *          instantiation. Also the function templates and constexpr declarations
+ *          are used to enable compile-time evaluation if the input allows
+ *          for compile time evaluation (compile-time constant).
  * 
  * Author: Omid Kandelusy
  */
